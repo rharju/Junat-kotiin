@@ -155,13 +155,14 @@ footer a { color: inherit; }
   <section id="hero" aria-live="polite"></section>
   <section id="list"></section>
   <p id="status"></p>
-  <footer>Lähde: Fintraffic / Digitraffic, avoin data (CC 4.0 BY). Aikataulu- ja raidetiedot voivat muuttua viime hetkellä.</footer>
+  <footer>Lähde: Fintraffic / Digitraffic, avoin data (CC 4.0 BY). Aikataulu- ja raidetiedot voivat muuttua viime hetkellä. Näytetään vain junat, joiden matka-aika on alle 25 minuuttia.</footer>
 </main>
 
 <script>
 /*LOGIC_START*/
 const FROM = 'HKI';
 const TO = 'HPL';
+const MAX_TRIP_MIN = 25;
 
 // Turns the raw Digitraffic train list into the departures this page shows.
 function pickTrains(trains, now) {
@@ -178,6 +179,8 @@ function pickTrains(trains, now) {
     if (dep.actualTime) continue; // already left
 
     const sched = Date.parse(dep.scheduledTime);
+    // Skip trains that reach Huopalahti the long way round (e.g. the ring rail loop).
+    if (Date.parse(arr.scheduledTime) - sched > MAX_TRIP_MIN * 60000) continue;
     const est = dep.liveEstimateTime ? Date.parse(dep.liveEstimateTime) : sched;
     const cancelled = Boolean(t.cancelled || dep.cancelled || arr.cancelled);
     if (est < now - 20000) continue;
