@@ -4,16 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eceff3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1218" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kotiin">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <title>Junat kotiin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
 <style>
-/* Layout: one next-departure card with a station-style track sign, followed by a compact list of later trains. */
+/* Layout: freshness line on top, one hero card led by the track sign and the minutes left, a short list of later trains, then the walking-time setting. */
 :root {
   --bg: #eceff3;
   --surface: #ffffff;
-  --surface-2: #f4f6f9;
   --ink: #0e1a26;
   --muted: #56667a;
   --line: #d9e0e8;
@@ -31,7 +39,6 @@
   :root {
     --bg: #0b1218;
     --surface: #131c25;
-    --surface-2: #1a2531;
     --ink: #e8eef4;
     --muted: #92a2b3;
     --line: #26323f;
@@ -59,12 +66,10 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 main { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
 
-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 2px; }
-header h1 { margin: 0; font-family: var(--font-num); font-weight: 700; font-size: 30px; line-height: 1.05; letter-spacing: .01em; text-wrap: balance; }
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 12px; }
+header h1 { margin: 0; min-width: 0; font-family: var(--font-num); font-weight: 700; font-size: 30px; line-height: 1.05; letter-spacing: .01em; text-wrap: balance; }
 header h1 .arrow { color: var(--accent); padding: 0 .15em; }
-header p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
 button {
   font: inherit; font-weight: 500; font-size: 14px; color: var(--ink);
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
@@ -74,70 +79,86 @@ button:hover { border-color: var(--accent); }
 button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 button[disabled] { opacity: .6; cursor: default; }
 
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
-.hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; }
-.hero-top .count { color: var(--ink); font-family: var(--font-num); font-size: 26px; letter-spacing: .01em; text-transform: none; font-variant-numeric: tabular-nums; }
-.hero-main { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 10px; }
-.time { font-family: var(--font-num); font-weight: 700; font-size: 84px; line-height: .95; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
-.time-old { display: block; color: var(--muted); font-size: 18px; font-weight: 600; text-decoration: line-through; font-family: var(--font-num); margin-bottom: 4px; }
+#status { margin: -4px 0 0; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); flex: none; }
+#status.stale .dot, #status.error .dot { background: var(--bad); }
+#status .warn { color: var(--bad); font-weight: 600; }
 
-.sign {
-  flex: none; width: 108px; background: var(--sign-bg); color: var(--sign-fg);
-  border-radius: 12px; padding: 8px 6px 10px; text-align: center;
-}
-.sign .lbl { display: block; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; font-weight: 600; opacity: .85; }
-.sign .val { display: block; font-family: var(--font-num); font-weight: 700; font-size: 74px; line-height: .95; font-variant-numeric: tabular-nums; }
+.dim { opacity: .45; transition: opacity .2s; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px 18px; }
+.hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; }
+.hero-top .warn { color: var(--late); }
+.hero-main { display: flex; align-items: center; gap: 16px; margin-top: 10px; }
+
+.sign { flex: none; width: 124px; background: var(--sign-bg); color: var(--sign-fg); border-radius: 14px; padding: 9px 6px 12px; text-align: center; }
+.sign .lbl { display: block; font-size: 13px; letter-spacing: .18em; text-transform: uppercase; font-weight: 600; opacity: .85; }
+.sign .val { display: block; font-family: var(--font-num); font-weight: 700; font-size: 92px; line-height: .95; font-variant-numeric: tabular-nums; }
 .sign.unknown .val { opacity: .5; }
 
-.hero-bottom { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.hero-right { flex: 1 1 0; min-width: 0; }
+.count { font-family: var(--font-num); font-weight: 700; font-size: 56px; line-height: .95; letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.count.long { font-size: 34px; }
+.clock { margin-top: 6px; color: var(--muted); font-size: 20px; font-family: var(--font-num); font-weight: 600; font-variant-numeric: tabular-nums; }
+.clock b { color: var(--ink); font-weight: 700; }
+.clock s { margin-right: 6px; }
+
+.hero-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.who .dest { font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .badge {
-  display: inline-grid; place-items: center; min-width: 32px; height: 32px; padding: 0 8px; border-radius: 8px;
+  flex: none; display: inline-grid; place-items: center; min-width: 32px; height: 32px; padding: 0 8px; border-radius: 8px;
   background: var(--accent); color: #fff; font-family: var(--font-num); font-weight: 700; font-size: 22px; line-height: 1;
 }
 @media (prefers-color-scheme: dark) { .badge { color: #06131f; } }
-.arrive { color: var(--muted); font-size: 15px; }
+.arrive { color: var(--muted); font-size: 15px; text-align: right; white-space: nowrap; }
 .arrive b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
-.chip { margin-left: auto; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
-.chip.ok { color: var(--ok); }
+.note { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+
+.chip { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; text-transform: none; letter-spacing: 0; }
 .chip.late { color: var(--late); }
 .chip.bad { color: var(--bad); }
 
-.list-title { margin: 6px 2px -4px; font-size: 13px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 600; }
+.list-title { margin: 8px 2px 0; font-size: 13px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 600; }
 .rows { display: flex; flex-direction: column; gap: 8px; }
 .row {
   display: grid; grid-template-columns: 32px minmax(0, 1fr) auto auto; align-items: center; gap: 12px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px;
 }
 .row .when { min-width: 0; }
-.row .t { font-family: var(--font-num); font-weight: 700; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
-.row .t s { color: var(--muted); font-size: 16px; font-weight: 600; margin-left: 6px; }
-.row .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
-.row .sub .late { color: var(--late); font-weight: 600; }
-.row .sub .bad { color: var(--bad); font-weight: 600; }
-.row .in { font-family: var(--font-num); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
+.row .top { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.row .t { font-family: var(--font-num); font-weight: 700; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; flex: none; }
+.row .late { color: var(--late); font-size: 14px; font-weight: 700; font-family: var(--font-num); white-space: nowrap; }
+.row .dest { color: var(--muted); font-size: 14px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .mid { text-align: right; white-space: nowrap; }
+.row .in { font-family: var(--font-num); font-weight: 600; font-size: 20px; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--muted); }
+.row .arr { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.row .bad { color: var(--bad); font-weight: 600; font-size: 16px; }
 .row .track {
   min-width: 46px; height: 46px; display: grid; place-items: center; border-radius: 9px;
   background: var(--sign-bg); color: var(--sign-fg); font-family: var(--font-num); font-weight: 700; font-size: 30px; font-variant-numeric: tabular-nums;
 }
 .row .track.unknown { opacity: .45; }
-.row.cancelled .t, .row.cancelled .in { text-decoration: line-through; color: var(--muted); }
+.row.cancelled .t { text-decoration: line-through; color: var(--muted); }
 .row.cancelled .track { opacity: .35; }
+.row.missed { opacity: .5; }
+.row.missed .in { font-size: 15px; }
 
 .empty { text-align: center; color: var(--muted); padding: 26px 18px; }
 .empty strong { display: block; color: var(--ink); font-size: 18px; margin-bottom: 4px; }
 
-#status { margin: 0; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-#status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); flex: none; }
-#status.stale .dot { background: var(--late); }
-#status.error .dot { background: var(--bad); }
-#status .err { color: var(--bad); font-weight: 600; }
+.walk { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px 8px 8px 14px; font-size: 15px; }
+.stepper { display: flex; align-items: center; gap: 4px; }
+.stepper button { width: 40px; padding: 0; font-size: 20px; line-height: 1; }
+.stepper output { min-width: 58px; text-align: center; font-family: var(--font-num); font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums; }
+
 footer { color: var(--muted); font-size: 12px; }
-footer a { color: inherit; }
 
 @media (max-width: 380px) {
-  .time { font-size: 70px; }
-  .sign { width: 94px; }
-  .sign .val { font-size: 62px; }
+  .sign { width: 108px; }
+  .sign .val { font-size: 78px; }
+  .count { font-size: 48px; }
+  .count.long { font-size: 30px; }
   header h1 { font-size: 26px; }
 }
 </style>
@@ -145,16 +166,23 @@ footer a { color: inherit; }
 <body>
 <main>
   <header>
-    <div>
-      <h1>Helsinki<span class="arrow">→</span>Huopalahti</h1>
-      <p>Lähijunat Helsingin rautatieasemalta</p>
-    </div>
+    <h1>Helsinki<span class="arrow">→</span>Huopalahti</h1>
     <button id="refresh" type="button">Päivitä</button>
   </header>
 
+  <p id="status"></p>
   <section id="hero" aria-live="polite"></section>
   <section id="list"></section>
-  <p id="status"></p>
+
+  <div class="walk" role="group" aria-label="Kävelyaika raiteelle">
+    <span>Kävelyaika raiteelle</span>
+    <div class="stepper">
+      <button id="walkDown" type="button" aria-label="Vähemmän">−</button>
+      <output id="walkVal">3 min</output>
+      <button id="walkUp" type="button" aria-label="Enemmän">+</button>
+    </div>
+  </div>
+
   <footer>Lähde: Fintraffic / Digitraffic, avoin data (CC 4.0 BY). Aikataulu- ja raidetiedot voivat muuttua viime hetkellä. Näytetään vain junat, joiden matka-aika on alle 25 minuuttia.</footer>
 </main>
 
@@ -191,6 +219,7 @@ function pickTrains(trains, now) {
       trainNumber: t.trainNumber,
       line: t.commuterLineID || '?',
       track: (dep.commercialTrack || '').trim(),
+      dest: rows.length ? rows[rows.length - 1].stationShortCode : '',
       sched, est, arrEst, cancelled,
       lateMin: Math.round((est - sched) / 60000),
     });
@@ -199,23 +228,56 @@ function pickTrains(trains, now) {
   return out;
 }
 
+// Picks the hero train and the rows below it, taking the walking time to the platform into account.
+// mode: 'next' = earliest departure you can catch, 'fastest' = a later train that arrives sooner,
+// 'tight' = nothing is catchable on foot.
+function choose(trains, now, walkMin) {
+  const lead = walkMin * 60000;
+  const all = trains.map(t => ({ ...t, missed: !t.cancelled && t.est - now < lead }));
+  const ok = all.filter(t => !t.cancelled && !t.missed);
+  let hero = null;
+  let mode = 'next';
+  if (ok.length) {
+    hero = ok.reduce((best, t) => (t.arrEst < best.arrEst ? t : best), ok[0]);
+    if (hero !== ok[0]) mode = 'fastest';
+  } else {
+    const live = all.filter(t => !t.cancelled);
+    if (live.length) { hero = live[live.length - 1]; mode = 'tight'; }
+  }
+  const others = all.filter(t => t !== hero);
+  const missed = others.filter(t => t.missed).slice(-1);
+  const next = others.filter(t => !t.missed).slice(0, 4);
+  return { hero, mode, rows: [...missed, ...next] };
+}
+
 function countdownText(est, now) {
   const mins = Math.floor((est - now) / 60000);
   if (mins < 1) return 'nyt';
   if (mins < 60) return mins + ' min';
   return Math.floor(mins / 60) + ' h ' + (mins % 60) + ' min';
 }
+
+function cleanStationName(n) {
+  return String(n).replace(/ asema$/i, '');
+}
 /*LOGIC_END*/
 
-const API = 'https://rata.digitraffic.fi/api/v1/live-trains/station/' + FROM +
+const BASE = 'https://rata.digitraffic.fi/api/v1/';
+const API = BASE + 'live-trains/station/' + FROM +
   '?departing_trains=40&departed_trains=0&arrived_trains=0&arriving_trains=0' +
   '&include_nonstopping=false&train_categories=Commuter';
+const STATIONS_API = BASE + 'metadata/stations';
 const REFRESH_MS = 20000;
+const STALE_MS = 60000;
 
 const fmtTime = new Intl.DateTimeFormat('fi-FI', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki' });
 const fmtSec = new Intl.DateTimeFormat('fi-FI', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/Helsinki' });
 
-const state = { raw: null, fetchedAt: 0, error: null, loading: false };
+const state = { raw: null, fetchedAt: 0, error: null, loading: false, walkMin: 3 };
+const stationNames = {};
+
+function store(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* storage may be unavailable */ } }
+function recall(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 
 function h(tag, cls, text) {
   const el = document.createElement(tag);
@@ -224,57 +286,75 @@ function h(tag, cls, text) {
   return el;
 }
 
+function destName(code) { return stationNames[code] || ''; }
+
 function trackSign(track) {
   const s = h('div', 'sign' + (track ? '' : ' unknown'));
   s.append(h('span', 'lbl', 'Raide'), h('span', 'val', track || '–'));
   return s;
 }
 
+// Only deviations get a chip; on-time trains stay quiet.
 function delayChip(tr) {
   if (tr.cancelled) return h('span', 'chip bad', 'Peruttu');
   if (tr.lateMin >= 1) return h('span', 'chip late', '+' + tr.lateMin + ' min');
-  return h('span', 'chip ok', 'Aikataulussa');
+  return null;
 }
 
-function renderHero(tr, now) {
+const HERO_LABELS = { next: 'Seuraava lähtö', fastest: 'Nopein perille', tight: 'Et ehdi kävellen' };
+
+function renderHero(tr, mode, now) {
   const card = h('div', 'card');
   const top = h('div', 'hero-top');
-  top.append(h('span', null, 'Seuraava lähtö'), h('span', 'count', countdownText(tr.est, now)));
+  top.append(h('span', mode === 'tight' ? 'warn' : null, HERO_LABELS[mode]));
+  const chip = delayChip(tr);
+  if (chip) top.append(chip);
 
   const main = h('div', 'hero-main');
-  const time = h('div', 'time');
-  if (tr.lateMin >= 1) time.append(h('span', 'time-old', fmtTime.format(tr.sched)));
-  time.append(document.createTextNode(fmtTime.format(tr.est)));
-  main.append(time, trackSign(tr.track));
+  const right = h('div', 'hero-right');
+  const cd = countdownText(tr.est, now);
+  right.append(h('div', 'count' + (cd.length > 7 ? ' long' : ''), cd));
+  const clock = h('div', 'clock');
+  clock.append('klo ');
+  if (tr.lateMin >= 1) clock.append(h('s', null, fmtTime.format(tr.sched)));
+  clock.append(h('b', null, fmtTime.format(tr.est)));
+  right.append(clock);
+  main.append(trackSign(tr.track), right);
 
   const bottom = h('div', 'hero-bottom');
+  const who = h('div', 'who');
+  who.append(h('span', 'badge', tr.line));
+  const dn = destName(tr.dest);
+  if (dn) who.append(h('span', 'dest', dn));
   const arrive = h('span', 'arrive');
-  arrive.append('Huopalahdessa ', h('b', null, fmtTime.format(tr.arrEst)));
-  bottom.append(h('span', 'badge', tr.line), arrive, delayChip(tr));
+  arrive.append('Perillä ', h('b', null, fmtTime.format(tr.arrEst)));
+  bottom.append(who, arrive);
 
   card.append(top, main, bottom);
-  if (!tr.track) {
-    const note = h('p', 'arrive', 'Raidetta ei ole vielä ilmoitettu. Se ilmestyy tähän yleensä ennen lähtöä.');
-    note.style.margin = '12px 0 0';
-    card.append(note);
-  }
+  if (!tr.track) card.append(h('p', 'note', 'Raidetta ei ole vielä ilmoitettu. Se ilmestyy tähän yleensä ennen lähtöä.'));
+  if (mode === 'tight') card.append(h('p', 'note', 'Tähän ehtisi vain juosten. Seuraavia junia ei ole vielä tiedossa.'));
   return card;
 }
 
 function renderRow(tr, now) {
-  const row = h('div', 'row' + (tr.cancelled ? ' cancelled' : ''));
+  const row = h('div', 'row' + (tr.cancelled ? ' cancelled' : '') + (tr.missed ? ' missed' : ''));
   const when = h('div', 'when');
-  const t = h('div', 't', fmtTime.format(tr.est));
-  if (tr.lateMin >= 1 && !tr.cancelled) t.append(h('s', null, fmtTime.format(tr.sched)));
-  const sub = h('div', 'sub');
-  if (tr.cancelled) sub.append(h('span', 'bad', 'Peruttu'));
-  else if (tr.lateMin >= 1) sub.append(h('span', 'late', '+' + tr.lateMin + ' min'), ' · perillä ' + fmtTime.format(tr.arrEst));
-  else sub.append('Perillä ' + fmtTime.format(tr.arrEst));
-  when.append(t, sub);
+  const top = h('div', 'top');
+  top.append(h('div', 't', fmtTime.format(tr.est)));
+  if (tr.lateMin >= 1 && !tr.cancelled) top.append(h('span', 'late', '+' + tr.lateMin));
+  when.append(top);
+  const dn = destName(tr.dest);
+  if (dn) when.append(h('div', 'dest', dn));
+  const mid = h('div', 'mid');
+  if (tr.cancelled) mid.append(h('div', 'bad', 'Peruttu'));
+  else {
+    mid.append(h('div', 'in', tr.missed ? 'et ehdi' : countdownText(tr.est, now)));
+    mid.append(h('div', 'arr', 'perillä ' + fmtTime.format(tr.arrEst)));
+  }
   row.append(
     h('span', 'badge', tr.line),
     when,
-    h('span', 'in', tr.cancelled ? '' : countdownText(tr.est, now)),
+    mid,
     h('span', 'track' + (tr.track ? '' : ' unknown'), tr.track || '–')
   );
   return row;
@@ -291,8 +371,15 @@ function draw() {
   const hero = document.getElementById('hero');
   const list = document.getElementById('list');
   const status = document.getElementById('status');
-  const btn = document.getElementById('refresh');
-  btn.disabled = state.loading;
+  document.getElementById('refresh').disabled = state.loading;
+  document.getElementById('walkVal').textContent = state.walkMin + ' min';
+  document.getElementById('walkDown').disabled = state.walkMin <= 0;
+  document.getElementById('walkUp').disabled = state.walkMin >= 10;
+
+  const age = state.fetchedAt ? now - state.fetchedAt : Infinity;
+  const stale = state.raw !== null && age > STALE_MS;
+  hero.className = stale ? 'dim' : '';
+  list.className = stale ? 'dim' : '';
 
   hero.replaceChildren();
   list.replaceChildren();
@@ -301,28 +388,25 @@ function draw() {
     hero.append(renderEmpty(state.error ? 'Junatietoja ei saatu' : 'Haetaan junia…',
       state.error ? 'Yritän uudelleen automaattisesti.' : ''));
   } else {
-    const trains = pickTrains(state.raw, now);
-    const first = trains.find(x => !x.cancelled);
-    if (!first) {
+    const picked = choose(pickTrains(state.raw, now), now, state.walkMin);
+    if (!picked.hero) {
       hero.append(renderEmpty('Ei lähtöjä Huopalahteen', 'Seuraavan noin 40 lähdön joukossa ei ole Huopalahden kautta kulkevaa junaa.'));
     } else {
-      hero.append(renderHero(first, now));
+      hero.append(renderHero(picked.hero, picked.mode, now));
     }
-    const rest = trains.filter(x => x !== first).slice(0, 6);
-    if (rest.length) {
+    if (picked.rows.length) {
       list.append(h('p', 'list-title', 'Sen jälkeen'));
       const rows = h('div', 'rows');
-      for (const tr of rest) rows.append(renderRow(tr, now));
+      for (const tr of picked.rows) rows.append(renderRow(tr, now));
       list.append(rows);
     }
   }
 
-  const age = state.fetchedAt ? now - state.fetchedAt : Infinity;
-  status.className = state.error ? 'error' : (age > REFRESH_MS * 2.5 ? 'stale' : '');
+  status.className = state.error || stale ? (stale ? 'stale' : 'error') : '';
   status.replaceChildren(h('span', 'dot'));
-  if (state.fetchedAt) status.append('Päivitetty ' + fmtSec.format(state.fetchedAt));
-  else status.append('Ei vielä päivitetty');
-  if (state.error) status.append(h('span', 'err', ' · ' + state.error + ', näytetään viimeisin tieto'));
+  status.append(state.fetchedAt ? 'Päivitetty ' + fmtSec.format(state.fetchedAt) : 'Ei vielä päivitetty');
+  if (stale) status.append(h('span', 'warn', ' · Tieto on vanhaa, tarkista asemanäytöltä'));
+  else if (state.error) status.append(h('span', 'warn', ' · ' + state.error));
 }
 
 async function load() {
@@ -346,7 +430,43 @@ async function load() {
   }
 }
 
+// Station names turn terminus codes like KKN into readable destinations. Cached for a week.
+async function loadStations() {
+  try {
+    const cached = JSON.parse(recall('stations-v1') || 'null');
+    if (cached && cached.map && Date.now() - cached.t < 7 * 864e5) {
+      Object.assign(stationNames, cached.map);
+      draw();
+      return;
+    }
+  } catch (e) { /* ignore a corrupt cache */ }
+  try {
+    const res = await fetch(STATIONS_API);
+    if (!res.ok) return;
+    const map = {};
+    for (const s of await res.json()) {
+      if (s.stationShortCode && s.stationName && s.passengerTraffic !== false) {
+        map[s.stationShortCode] = cleanStationName(s.stationName);
+      }
+    }
+    Object.assign(stationNames, map);
+    store('stations-v1', JSON.stringify({ t: Date.now(), map }));
+    draw();
+  } catch (e) { /* destinations simply stay hidden */ }
+}
+
+function setWalk(v) {
+  state.walkMin = Math.max(0, Math.min(10, v));
+  store('walk-min', String(state.walkMin));
+  draw();
+}
+
+const savedWalk = parseInt(recall('walk-min'), 10);
+if (Number.isFinite(savedWalk)) state.walkMin = Math.max(0, Math.min(10, savedWalk));
+
 document.getElementById('refresh').addEventListener('click', load);
+document.getElementById('walkDown').addEventListener('click', () => setWalk(state.walkMin - 1));
+document.getElementById('walkUp').addEventListener('click', () => setWalk(state.walkMin + 1));
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) { draw(); load(); }
 });
@@ -354,6 +474,7 @@ setInterval(load, REFRESH_MS);
 setInterval(draw, 1000);
 draw();
 load();
+loadStations();
 </script>
 </body>
 </html>
