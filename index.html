@@ -103,7 +103,7 @@ button[disabled] { opacity: .6; cursor: default; }
 .clock b { color: var(--ink); font-weight: 700; }
 .clock s { margin-right: 6px; }
 
-.hero-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.hero-bottom { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 .who { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .who .dest { font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .badge {
@@ -111,7 +111,7 @@ button[disabled] { opacity: .6; cursor: default; }
   background: var(--accent); color: #fff; font-family: var(--font-num); font-weight: 700; font-size: 22px; line-height: 1;
 }
 @media (prefers-color-scheme: dark) { .badge { color: #06131f; } }
-.arrive { color: var(--muted); font-size: 15px; text-align: right; white-space: nowrap; }
+.arrive { color: var(--muted); font-size: 16px; }
 .arrive b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .note { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
 
@@ -327,7 +327,7 @@ function renderHero(tr, mode, now) {
   const dn = destName(tr.dest);
   if (dn) who.append(h('span', 'dest', dn));
   const arrive = h('span', 'arrive');
-  arrive.append('Perillä ', h('b', null, fmtTime.format(tr.arrEst)));
+  arrive.append('Perillä Huopalahdessa ', h('b', null, fmtTime.format(tr.arrEst)));
   bottom.append(who, arrive);
 
   card.append(top, main, bottom);
